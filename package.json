@@ -1,0 +1,20 @@
+{
+    "name": "MeetusicBot",
+    "version": "1.0.0",
+    "description": "Democratic bot to play music in Google Meet",
+    "main": "index.js",
+    "bin": { 
+        "meetusic-bot": "index.js"
+    },
+    "repository": "https://github.com/KhushrajRathod/MeetusicBot",
+    "author": "Khushraj Rathod",
+    "license": "AGPL-3.0-only",
+    "dependencies": {
+        "chalk": "^4.1.0",
+        "clear": "^0.1.0",
+        "commander": "^5.1.0",
+        "figlet": "^1.4.0",
+        "ora": "^4.0.4",
+        "puppeteer": "^5.0.0"
+    }
+}
