@@ -6,7 +6,7 @@
     "bin": { 
         "meetusic-bot": "index.js"
     },
-    "repository": "https://github.com/KhushrajRathod/MeetusicBot",
+    "repository": "https://github.com/khrj/meetusic-bot",
     "author": "Khushraj Rathod",
     "license": "AGPL-3.0-only",
     "dependencies": {

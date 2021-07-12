@@ -145,7 +145,7 @@ console.log(yellow(require("figlet").textSync('Meetusic Bot', {
     await shiftEnter()
     await page.keyboard.type("Version: 1")
     await shiftEnter()
-    await page.keyboard.type("Developed by @KhushrajRathod")
+    await page.keyboard.type("Developed by @khrj")
     await page.click('[data-tooltip="Send message"]')
     spinner.succeed("Send intro message")
 
