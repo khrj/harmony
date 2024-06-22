@@ -2,7 +2,7 @@
 	"main": "index.js",
 	"type": "module",
 	"scripts": {
-		"start": "node index.js"
+		"start": "node src/index.js"
 	},
 	"dependencies": {
 		"chalk": "^5.3.0",

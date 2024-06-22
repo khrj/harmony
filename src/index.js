@@ -61,7 +61,6 @@ let nav
 spinner.start("Loading page")
 await page.goto("https://meet.google.com/", { waitUntil: "load" })
 
-// await page.goto(options.url, { waitUntil: "domcontentloaded" })
 const domain = new URL(page.url()).host
 
 if (domain === "workspace.google.com" || domain === "accounts.google.com") {
