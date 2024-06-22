@@ -43,11 +43,12 @@ console.log(
 spinner.start("Opening browser")
 
 const browser = await puppeteer.launch({
-	args: ["--use-fake-ui-for-media-stream", "--mute-audio"],
 	headless: !options.headfull,
 	defaultViewport: null,
 	userDataDir: "./user_data",
 })
+
+browser.defaultBrowserContext().overridePermissions("https://meet.google.com", ["microphone"])
 
 const page = (await browser.pages())[0]
 await page.setExtraHTTPHeaders({ "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8" })
@@ -102,48 +103,44 @@ spinner.start("Joining meeting")
 nav = page.waitForNavigation({ waitUntil: "networkidle0" })
 
 await page.goto(options.url, { waitUntil: "domcontentloaded" })
-await page.evaluate(() => {
-	let stream = new Promise(resolve => {
-		let audio = document.createElement("audio")
-		audio.setAttribute("src", "https://file-examples-com.github.io/uploads/2017/11/file_example_MP3_700KB.mp3")
-		audio.setAttribute("crossorigin", "anonymous")
-		audio.setAttribute("controls", "")
-		audio.setAttribute("loop", "")
-		audio.onplay = () => {
-			let stream = audio.captureStream()
-			console.log(stream.getAudioTracks())
-			resolve(stream)
-		}
-		document.querySelector("body").appendChild(audio)
-		audio.play()
-	})
-	navigator.mediaDevices.getUserMedia = async () => {
-		return stream
-	}
-})
-
 await nav
 
 // Join meeting
-await page.evaluate(() => {
+await page.evaluate(async () => {
+	for (const span of document.getElementsByTagName("span")) {
+		if (span.innerHTML === "Allow microphone and camera") span.click()
+	}
+
+	const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
+	await sleep(2000)
+
 	for (const span of document.getElementsByTagName("span")) {
 		if (span.innerHTML === "Join now" || span.innerHTML === "Ask to join" || span.innerHTML === "Switch here")
 			span.click()
 	}
 })
 
+try {
+	await page.click('[aria-label="Close dialog"]')
+} catch {
+	console.log("No dialog to close")
+}
+
 await page.waitForSelector('[aria-label="Chat with everyone"]', { timeout: 0 })
 
 spinner.succeed("Joined meeting")
 spinner.start("Sending intro message")
 
-await page.waitForSelector('[aria-label="Chat with everyone"]')
-await sleep(2000)
-await page.click('[aria-label="Chat with everyone"]')
+const clickSelector = async selector => {
+	await page.waitForSelector(selector)
+	await sleep(2000)
+	await page.click(selector)
+}
 
-await page.waitForSelector('textarea[aria-label="Send a message"]')
-await sleep(2000)
-await page.click('textarea[aria-label="Send a message"]')
+await clickSelector('[aria-label="Audio settings"]')
+await clickSelector('[aria-label="Microphone: Default"]')
+await clickSelector('[aria-label="Chat with everyone"]')
+await clickSelector('textarea[aria-label="Send a message"]')
 
 const shiftEnter = async () => {
 	await page.keyboard.down("Shift")
