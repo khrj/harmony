@@ -1,0 +1,10 @@
+.direnv/
+
+build/
+node_modules/
+.env
+.cache
+
+.wwebjs_*
+.next
+**/.browserData
