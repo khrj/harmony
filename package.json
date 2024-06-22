@@ -10,6 +10,8 @@
 		"commander": "^12.1.0",
 		"figlet": "^1.7.0",
 		"ora": "^8.0.1",
-		"puppeteer": "^22.12.0"
+		"puppeteer": "^22.1.0",
+		"puppeteer-extra": "^3.3.6",
+		"puppeteer-extra-plugin-stealth": "^2.11.2"
 	}
 }

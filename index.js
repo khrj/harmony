@@ -8,7 +8,10 @@ import figlet from "figlet"
 import { promises as fs } from "fs"
 import ora from "ora"
 import { join } from "path"
-import { launch } from "puppeteer"
+import puppeteer from "puppeteer-extra"
+
+import stealth from "puppeteer-extra-plugin-stealth"
+puppeteer.use(stealth())
 
 const spinner = ora()
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
@@ -38,7 +41,7 @@ console.log(
 
 spinner.start("Opening browser")
 
-const browser = await launch({
+const browser = await puppeteer.launch({
 	args: ["--use-fake-ui-for-media-stream", "--mute-audio"],
 	headless: !options.headfull,
 	defaultViewport: null,
@@ -47,7 +50,7 @@ const browser = await launch({
 const page = (await browser.pages())[0]
 await page.setExtraHTTPHeaders({ "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8" })
 await page.setUserAgent(
-	"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36"
+	"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
 )
 
 spinner.succeed("Opened browser")
@@ -63,15 +66,12 @@ try {
 
 let nav
 spinner.start("Loading page")
-// await page.goto("https://meet.google.com/", { waitUntil: "load" })
+await page.goto("https://meet.google.com/", { waitUntil: "load" })
 
-
-await page.goto(options.url, { waitUntil: "domcontentloaded" })
+// await page.goto(options.url, { waitUntil: "domcontentloaded" })
 let domain = new URL(page.url()).host
 
-await sleep(100000)
-
-if (domain === "workspace.google.com") {
+if (domain === "workspace.google.com" || domain === "accounts.google.com") {
 	spinner.succeed("Loaded page")
 	spinner.info("Not signed in")
 	spinner.start("Signing in")
@@ -82,7 +82,7 @@ if (domain === "workspace.google.com") {
 	nav = page.waitForNavigation({ waitUntil: "networkidle0" })
 	await page.keyboard.press("Enter")
 	await nav
-	await page.waitFor(2000)
+	await sleep(2000)
 	await page.focus("#identifierId")
 	await page.keyboard.type(options.password)
 	nav = page.waitForNavigation({ waitUntil: "networkidle0" })
@@ -140,19 +140,25 @@ await page.evaluate(_ => {
 			span.click()
 		} else if (span.innerHTML === "Ask to join") {
 			span.click()
+		} else if (span.innerHTML === "Switch here") {
+			span.click()
 		}
 	}
 })
 
-await page.waitFor('[data-tooltip="Chat with everyone"]', { timeout: 0 })
+await page.waitForSelector('[aria-label="Chat with everyone"]', { timeout: 0 })
+
 spinner.succeed("Joined meeting")
-
 spinner.start("Sending intro message")
-await page.click('[data-tooltip="Chat with everyone"]')
-await page.waitFor(1000) // 300 ms transition + 700 buffer
-await page.click('[name="chatTextInput"]')
 
-const shiftEnter = async _ => {
+await page.waitForSelector('[aria-label="Chat with everyone"]')
+await sleep(1000)
+await page.click('[aria-label="Chat with everyone"]')
+
+await page.waitForSelector('textarea[aria-label="Send a message"]')
+await page.click('textarea[aria-label="Send a message"]')
+
+const shiftEnter = async () => {
 	await page.keyboard.down("Shift")
 	await page.keyboard.press("Enter")
 	await page.keyboard.up("Shift")
@@ -165,8 +171,11 @@ await shiftEnter()
 await page.keyboard.type("Version: 1")
 await shiftEnter()
 await page.keyboard.type("Developed by @khrj")
-await page.click('[data-tooltip="Send message"]')
-spinner.succeed("Send intro message")
+
+await page.waitForSelector('button[aria-label="Send a message"]')
+await page.click('button[aria-label="Send a message"]')
+
+spinner.succeed("Sent intro message")
 
 // Get messages from window
 await page.exposeFunction("message", async msg => {
