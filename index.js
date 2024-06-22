@@ -11,6 +11,7 @@ import { join } from "path"
 import puppeteer from "puppeteer-extra"
 
 import stealth from "puppeteer-extra-plugin-stealth"
+import dedent from "dedent"
 puppeteer.use(stealth())
 
 const spinner = ora()
@@ -45,6 +46,7 @@ const browser = await puppeteer.launch({
 	args: ["--use-fake-ui-for-media-stream", "--mute-audio"],
 	headless: !options.headfull,
 	defaultViewport: null,
+	userDataDir: "./user_data",
 })
 
 const page = (await browser.pages())[0]
@@ -54,22 +56,13 @@ await page.setUserAgent(
 )
 
 spinner.succeed("Opened browser")
-spinner.start("Loading cookies (Google account)")
-
-try {
-	const cookies = JSON.parse(await fs.readFile("./cookies.json"))
-	await page.setCookie(...cookies)
-	spinner.succeed("Loaded cookies (Google account)")
-} catch (e) {
-	spinner.warn("No cookies yet")
-}
 
 let nav
 spinner.start("Loading page")
 await page.goto("https://meet.google.com/", { waitUntil: "load" })
 
 // await page.goto(options.url, { waitUntil: "domcontentloaded" })
-let domain = new URL(page.url()).host
+const domain = new URL(page.url()).host
 
 if (domain === "workspace.google.com" || domain === "accounts.google.com") {
 	spinner.succeed("Loaded page")
@@ -117,7 +110,7 @@ await page.evaluate(() => {
 		audio.setAttribute("crossorigin", "anonymous")
 		audio.setAttribute("controls", "")
 		audio.setAttribute("loop", "")
-		audio.onplay = _ => {
+		audio.onplay = () => {
 			let stream = audio.captureStream()
 			console.log(stream.getAudioTracks())
 			resolve(stream)
@@ -125,7 +118,7 @@ await page.evaluate(() => {
 		document.querySelector("body").appendChild(audio)
 		audio.play()
 	})
-	navigator.mediaDevices.getUserMedia = async _ => {
+	navigator.mediaDevices.getUserMedia = async () => {
 		return stream
 	}
 })
@@ -133,16 +126,10 @@ await page.evaluate(() => {
 await nav
 
 // Join meeting
-await page.evaluate(_ => {
-	let spans = document.getElementsByTagName("span")
-	for (const span of spans) {
-		if (span.innerHTML === "Join now") {
+await page.evaluate(() => {
+	for (const span of document.getElementsByTagName("span")) {
+		if (span.innerHTML === "Join now" || span.innerHTML === "Ask to join" || span.innerHTML === "Switch here")
 			span.click()
-		} else if (span.innerHTML === "Ask to join") {
-			span.click()
-		} else if (span.innerHTML === "Switch here") {
-			span.click()
-		}
 	}
 })
 
@@ -152,10 +139,11 @@ spinner.succeed("Joined meeting")
 spinner.start("Sending intro message")
 
 await page.waitForSelector('[aria-label="Chat with everyone"]')
-await sleep(1000)
+await sleep(2000)
 await page.click('[aria-label="Chat with everyone"]')
 
 await page.waitForSelector('textarea[aria-label="Send a message"]')
+await sleep(2000)
 await page.click('textarea[aria-label="Send a message"]')
 
 const shiftEnter = async () => {
@@ -164,77 +152,62 @@ const shiftEnter = async () => {
 	await page.keyboard.up("Shift")
 }
 
-await page.keyboard.type(
-	'Hello! I\'m Meetusic Bot, a bot that helps you play music from online sources. type "@meetusicbot /help" (without quotes) to see what I can do'
-)
-await shiftEnter()
-await page.keyboard.type("Version: 1")
-await shiftEnter()
-await page.keyboard.type("Developed by @khrj")
+const send = async msg => {
+	const lines = msg.split("\n")
 
-await page.waitForSelector('button[aria-label="Send a message"]')
-await page.click('button[aria-label="Send a message"]')
+	for (const line of lines) {
+		await page.keyboard.type(line)
+		await shiftEnter()
+	}
+
+	await page.waitForSelector('button[aria-label="Send a message"]')
+	await page.click('button[aria-label="Send a message"]')
+}
+
+await send(
+	dedent`
+		Hello! I'm Meetusic Bot, a bot that helps you play music from online sources. type "@meetusicbot help" (without quotes) to see what I can do
+		Version: 1
+		Developed by @khrj
+	`
+)
 
 spinner.succeed("Sent intro message")
 
 // Get messages from window
 await page.exposeFunction("message", async msg => {
-	if (msg.text.includes("@meetusicbot") && msg.sender !== "You") {
-		msg.text = msg.text.replace("@meetusicbot", "")
+	if (msg.text.trim().startsWith("@meetusicbot") && msg.sender !== "You") {
+		const [_, command, ...args] = msg.text.trim().split(" ")
 
-		let parsed = {
-			command: false,
-			args: false,
-			error: false,
+		if (command === "help") {
+			await send(
+				dedent`
+					Here's what I can do:
+					@meetusicbot play <url>: play a url
+					@meetusicbot pause: pause					
+				`
+			)
 		}
 
-		// Find command
-		for (const word of msg.text.trim().split(" ")) {
-			if (word.startsWith("/")) {
-				if (!parsed.command) {
-					parsed.command = word.replace("/", "")
-				} else {
-					parsed.error = "Too many commands"
-					parsed.command = false
-					parsed.args = false
-					break
-				}
-			}
-		}
-
-		if (!parsed.error) {
-			if (!parsed.command) {
-				parsed.error = "No commands"
-			} else {
-				parsed.args = msg.text.replace("/" + parsed.command, "").trim()
-			}
-		}
-
-		console.log(parsed)
-
-		// Continue logic here
-		if (parsed.error) {
-			await page.keyboard.type(`Error: ${parsed.error}`)
-			await page.click('[data-tooltip="Send message"]')
-		} else {
-			//TODO
-		}
+		if (options.verbose) console.log(command, args)
 	}
 })
 
 // Message listener / scraper
-await page.evaluate(_ => {
+await page.evaluate(() => {
 	let observer = new MutationObserver(mutations => {
 		mutations.forEach(mutation => {
 			if (!mutation.addedNodes) return // If this is some other mutation
 			for (const node of mutation.addedNodes) {
-				if (node.style.order === "0") return // If this is/these are the shell(s) that meet creates
+				if (node.style.order === "0") return // I
+
 				// Get msg info
-				let info = {
+				const info = {
 					sender: node.childNodes[0].childNodes[0].innerHTML,
 					time: node.childNodes[0].childNodes[1].innerHTML,
-					text: node.childNodes[1].childNodes[0].innerHTML,
+					text: node.childNodes[1].childNodes[0].childNodes[0].childNodes[0].childNodes[0].innerHTML,
 				}
+
 				window.message(info)
 
 				// We need a sub listener for
@@ -250,8 +223,9 @@ await page.evaluate(_ => {
 							let subInfo = {
 								sender: info.sender,
 								time: info.time,
-								text: node.innerHTML,
+								text: node.childNodes[0].childNodes[0].childNodes[0].innerHTML,
 							}
+
 							window.message(subInfo)
 						}
 					})
@@ -265,4 +239,3 @@ await page.evaluate(_ => {
 	let chatBox = document.querySelector('[jsname="xySENc"]')
 	observer.observe(chatBox, { childList: true })
 })
-// await browser.close()
