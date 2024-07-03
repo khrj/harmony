@@ -1,6 +1,5 @@
 import { Temporal } from "@js-temporal/polyfill"
 import { execa } from "execa"
-import { FileFetcher } from "./file-fetcher.js"
 import { array, object, string } from "yup"
 
 const videosApiResponseSchema = object({
@@ -14,7 +13,7 @@ const videosApiResponseSchema = object({
 			contentDetails: object({
 				duration: string().required(),
 			}).required(),
-		}),
+		})
 	).required(),
 })
 
@@ -24,15 +23,9 @@ const searchApiResponseSchema = object({
 			id: object({
 				videoId: string().required(),
 			}).required(),
-		}),
+		})
 	).required(),
 })
-
-// interface Metadata {
-// 	id: string
-// 	title: string
-// 	channel: string
-// }
 
 export const getMetadata = async (apiKey, id) => {
 	const url = new URL("https://www.googleapis.com/youtube/v3/videos")
@@ -90,7 +83,7 @@ export const searchYoutube = async (apiKey, query) => {
 }
 
 export const getFileFromVideo = async (id, format) => {
-	const path = FileFetcher.getTempfilePath("youtube", id, format)
+	const path = getTempfilePath(id, format)
 
 	try {
 		await execa("yt-dlp", [id, "-f", "bestaudio", "-x", "--audio-format", format, "-o", path, "--force-ipv4"])
@@ -101,3 +94,6 @@ export const getFileFromVideo = async (id, format) => {
 
 	return path
 }
+
+const getTempfilePath = (provider, id, format) => `/tmp/doba-${provider}-${id}.${format}`
+const getLink = id => `https://youtu.be/${id}`
