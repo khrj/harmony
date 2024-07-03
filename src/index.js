@@ -66,17 +66,7 @@ spinner.succeed("Opened browser")
 
 spinner.start("Changing microphone settings...")
 await page.goto("chrome://settings/content/microphone", { waitUntil: "load" })
-// await sleep(100000)
-
-const select = document
-	.querySelector("body > settings-ui")
-	.shadowRoot.querySelector("#main")
-	.shadowRoot.querySelector("settings-basic-page")
-	.shadowRoot.querySelector("#basicPage > settings-section.expanded > settings-privacy-page")
-	.shadowRoot.querySelector("#pages > settings-subpage > media-picker")
-	.shadowRoot.querySelector("#mediaPicker")
-
-await page.select(select, "meetusic-sink")
+await (await page.locator("pierce/#mediaPicker").waitHandle()).select("meetusic-sink")
 spinner.succeed("Selected meetusic-sink as microphone")
 
 let nav
@@ -151,7 +141,6 @@ await page.waitForSelector('[aria-label="Chat with everyone"]', { timeout: 0 })
 
 spinner.succeed("Joined meeting")
 spinner.start("Sending intro message")
-
 
 await clickSelector('[aria-label="Chat with everyone"]')
 await clickSelector('textarea[aria-label="Send a message"]')
