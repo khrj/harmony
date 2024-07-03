@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import "dotenv/config"
+
 import { program } from "commander"
 program.version("1.0.0")
 
@@ -10,6 +12,7 @@ import puppeteer from "puppeteer-extra"
 
 import stealth from "puppeteer-extra-plugin-stealth"
 import dedent from "dedent"
+import { play } from "./music/index.js"
 puppeteer.use(stealth())
 
 const spinner = ora()
@@ -47,6 +50,7 @@ const browser = await puppeteer.launch({
 })
 
 browser.defaultBrowserContext().overridePermissions("https://meet.google.com", ["microphone"])
+browser.defaultBrowserContext().overridePermissions("http://localhost:3000", ["microphone"])
 
 const page = (await browser.pages())[0]
 await page.setExtraHTTPHeaders({ "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8" })
@@ -124,7 +128,9 @@ await page.locator('[aria-label="Chat with everyone"]').wait({ timeout: 0 })
 spinner.succeed("Joined meeting")
 spinner.start("Sending intro message")
 
+await sleep(2000)
 await page.locator('[aria-label="Chat with everyone"]').click()
+await sleep(2000)
 await page.locator('textarea[aria-label="Send a message"]').click()
 
 const shiftEnter = async () => {
@@ -164,9 +170,13 @@ await page.exposeFunction("message", async msg => {
 				dedent`
 					Here's what I can do:
 					@meetusicbot play <url>: play a url
-					@meetusicbot pause: pause					
+					@meetusicbot pause: pause
 				`
 			)
+		} else if (command === "play") {
+			await play(args, send)
+			const playerPage = await browser.newPage()
+			playerPage.goto("http://localhost:3000")
 		}
 
 		if (options.verbose) console.log(command, args)

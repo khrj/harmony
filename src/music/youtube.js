@@ -95,5 +95,5 @@ export const getFileFromVideo = async (id, format) => {
 	return path
 }
 
-const getTempfilePath = (provider, id, format) => `/tmp/doba-${provider}-${id}.${format}`
+const getTempfilePath = (id, format) => `/tmp/doba-${id}.${format}`
 const getLink = id => `https://youtu.be/${id}`

@@ -6,9 +6,9 @@ export class AudioPlayer {
 
 		const app = express()
 
-		app.get("/", (_req, res) => res.sendFile("player.html"))
+		app.get("/", (_req, res) => res.sendFile("./src/player.html", { root: process.cwd() }))
 		app.get("/audio", (_req, res) => res.sendFile(this.current))
-		app.listen(3000, () => console.log(`Express ready on ${port}`))
+		app.listen(3000, () => {})
 	}
 
 	async setFile(filePath) {
