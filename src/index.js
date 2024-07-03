@@ -56,7 +56,28 @@ await page.setUserAgent(
 	"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
 )
 
+const clickSelector = async selector => {
+	await page.waitForSelector(selector)
+	await sleep(2000)
+	await page.click(selector)
+}
+
 spinner.succeed("Opened browser")
+
+spinner.start("Changing microphone settings...")
+await page.goto("chrome://settings/content/microphone", { waitUntil: "load" })
+// await sleep(100000)
+
+const select = document
+	.querySelector("body > settings-ui")
+	.shadowRoot.querySelector("#main")
+	.shadowRoot.querySelector("settings-basic-page")
+	.shadowRoot.querySelector("#basicPage > settings-section.expanded > settings-privacy-page")
+	.shadowRoot.querySelector("#pages > settings-subpage > media-picker")
+	.shadowRoot.querySelector("#mediaPicker")
+
+await page.select(select, "meetusic-sink")
+spinner.succeed("Selected meetusic-sink as microphone")
 
 let nav
 spinner.start("Loading page")
@@ -131,14 +152,7 @@ await page.waitForSelector('[aria-label="Chat with everyone"]', { timeout: 0 })
 spinner.succeed("Joined meeting")
 spinner.start("Sending intro message")
 
-const clickSelector = async selector => {
-	await page.waitForSelector(selector)
-	await sleep(2000)
-	await page.click(selector)
-}
 
-await clickSelector('[aria-label="Audio settings"]')
-await clickSelector('[aria-label="Microphone: Default"]')
 await clickSelector('[aria-label="Chat with everyone"]')
 await clickSelector('textarea[aria-label="Send a message"]')
 
@@ -191,7 +205,7 @@ await page.exposeFunction("message", async msg => {
 
 // Message listener / scraper
 await page.evaluate(() => {
-	let observer = new MutationObserver(mutations => {
+	const observer = new MutationObserver(mutations => {
 		mutations.forEach(mutation => {
 			if (!mutation.addedNodes) return // If this is some other mutation
 			for (const node of mutation.addedNodes) {
@@ -210,13 +224,13 @@ await page.evaluate(() => {
 				// consecutive messages within the same minute by the same person
 				// as they don't count as a new message object
 
-				let subObserver = new MutationObserver(mutations => {
+				const subObserver = new MutationObserver(mutations => {
 					mutations.forEach(mutation => {
 						if (!mutation.addedNodes) return // If this is some other mutation
 						for (const node of mutation.addedNodes) {
 							if (node.classList.contains("gYckH")) return // If this is/these are the shell(s) that meet creates
 							// Get msg info
-							let subInfo = {
+							const subInfo = {
 								sender: info.sender,
 								time: info.time,
 								text: node.childNodes[0].childNodes[0].childNodes[0].innerHTML,
@@ -232,6 +246,6 @@ await page.evaluate(() => {
 		})
 	})
 
-	let chatBox = document.querySelector('[jsname="xySENc"]')
+	const chatBox = document.querySelector('[jsname="xySENc"]')
 	observer.observe(chatBox, { childList: true })
 })
