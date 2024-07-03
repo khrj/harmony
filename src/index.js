@@ -5,9 +5,7 @@ program.version("1.0.0")
 import chalk from "chalk"
 import clear from "clear"
 import figlet from "figlet"
-import { promises as fs } from "fs"
 import ora from "ora"
-import { join } from "path"
 import puppeteer from "puppeteer-extra"
 
 import stealth from "puppeteer-extra-plugin-stealth"
@@ -56,20 +54,13 @@ await page.setUserAgent(
 	"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
 )
 
-const clickSelector = async selector => {
-	await page.waitForSelector(selector)
-	await sleep(2000)
-	await page.click(selector)
-}
-
 spinner.succeed("Opened browser")
 
 spinner.start("Changing microphone settings...")
 await page.goto("chrome://settings/content/microphone", { waitUntil: "load" })
-await (await page.locator("pierce/#mediaPicker").waitHandle()).select("meetusic-sink")
+await page.locator("pierce/#mediaPicker").fill("meetusic-sink")
 spinner.succeed("Selected meetusic-sink as microphone")
 
-let nav
 spinner.start("Loading page")
 await page.goto("https://meet.google.com/", { waitUntil: "load" })
 
@@ -81,24 +72,14 @@ if (domain === "workspace.google.com" || domain === "accounts.google.com") {
 	spinner.start("Signing in")
 
 	await page.goto("https://accounts.google.com/", { waitUntil: "networkidle0" })
-	await page.focus("#identifierId")
-	await page.keyboard.type(options.email)
-	nav = page.waitForNavigation({ waitUntil: "networkidle0" })
-	await page.keyboard.press("Enter")
-	await nav
-	await sleep(2000)
-	await page.focus("#identifierId")
-	await page.keyboard.type(options.password)
-	nav = page.waitForNavigation({ waitUntil: "networkidle0" })
-	await page.keyboard.press("Enter")
-	await nav
+	await page.locator("#identifierId").fill(options.email)
+	await Promise.all([page.waitForNavigation({ waitUntil: "networkidle0" }), page.keyboard.press("Enter")])
+
+	await page.locator('#password input[type="password"]').fill(options.password)
+	await Promise.all([page.waitForNavigation({ waitUntil: "networkidle0" }), page.keyboard.press("Enter")])
 
 	if ((await page.$eval("title", e => e.innerHTML)) === "Google Account") {
 		spinner.succeed("Signed in successfully")
-		spinner.start("Writing session cookies as './cookies.json'")
-		const cookies = await page.cookies()
-		await fs.writeFile(join(".", "cookies.json"), JSON.stringify(cookies, null, 2))
-		spinner.succeed("Wrote session cookies as './cookies.json'")
 	} else {
 		spinner.fail("Sign in error")
 		process.exit(1)
@@ -111,10 +92,11 @@ if (domain === "workspace.google.com" || domain === "accounts.google.com") {
 }
 
 spinner.start("Joining meeting")
-nav = page.waitForNavigation({ waitUntil: "networkidle0" })
 
-await page.goto(options.url, { waitUntil: "domcontentloaded" })
-await nav
+await Promise.all([
+	page.waitForNavigation({ waitUntil: "networkidle0" }),
+	page.goto(options.url, { waitUntil: "domcontentloaded" }),
+])
 
 // Join meeting
 await page.evaluate(async () => {
@@ -132,18 +114,18 @@ await page.evaluate(async () => {
 })
 
 try {
-	await page.click('[aria-label="Close dialog"]')
+	await page.locator('[aria-label="Close dialog"]').click()
 } catch {
 	console.log("No dialog to close")
 }
 
-await page.waitForSelector('[aria-label="Chat with everyone"]', { timeout: 0 })
+await page.locator('[aria-label="Chat with everyone"]').wait({ timeout: 0 })
 
 spinner.succeed("Joined meeting")
 spinner.start("Sending intro message")
 
-await clickSelector('[aria-label="Chat with everyone"]')
-await clickSelector('textarea[aria-label="Send a message"]')
+await page.locator('[aria-label="Chat with everyone"]').click()
+await page.locator('textarea[aria-label="Send a message"]').click()
 
 const shiftEnter = async () => {
 	await page.keyboard.down("Shift")
@@ -159,8 +141,7 @@ const send = async msg => {
 		await shiftEnter()
 	}
 
-	await page.waitForSelector('button[aria-label="Send a message"]')
-	await page.click('button[aria-label="Send a message"]')
+	await page.locator('button[aria-label="Send a message"]').click()
 }
 
 await send(
