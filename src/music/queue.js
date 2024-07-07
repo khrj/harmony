@@ -13,8 +13,9 @@ export class Queue {
 		next ? this.queued.unshift(song) : this.queued.push(song)
 	}
 
-	setLooping(looping) {
-		this.looping = looping
+	toggleLooping() {
+		this.looping = !this.looping
+		return this.looping
 	}
 
 	clear() {

@@ -1,6 +1,7 @@
 import { FileFetcher } from "./file-fetcher.js"
 import { AudioPlayer } from "./audio-player.js"
 import { Queue } from "./queue.js"
+import { getLink } from "./youtube.js"
 
 const youtubeAPIKey = process.env.youtubeapikey
 if (!youtubeAPIKey) throw "Missing youtube API key"
@@ -9,7 +10,7 @@ const audioPlayer = new AudioPlayer()
 const queue = new Queue()
 const fileFetcher = new FileFetcher(youtubeAPIKey)
 
-export const play = async (args, send) => {
+export const play = async (args, send, next = false) => {
 	if (!args || !args[0]) throw "🛑 Error: No query or URL"
 	let videoId = getVideoIDFromURL(args[0])
 
@@ -41,7 +42,7 @@ export const play = async (args, send) => {
 		}
 	}
 
-	queue.addSong(song, false)
+	queue.addSong(song, next)
 
 	if (queue.getCurrent()) {
 		await send(`✅ Added ${song.name} to the queue`)
@@ -63,6 +64,35 @@ export const play = async (args, send) => {
 	await audioPlayer.next()
 }
 
+export const pause = () => audioPlayer.pause()
+export const resume = () => audioPlayer.resume()
+export const skip = send => {
+	audioPlayer.pause()
+	nextActionInQueue(send)
+}
+
+export const current = send => {
+	const current = queue.getCurrent()
+	if (!current) return send("🤔 No song playing")
+	else return send(`🎵 Current: ${current.name} from ${getLink(current.id)}`)
+}
+
+export const queueList = send => {
+	const topFive = queue.getTopFive()
+
+	let replyMessage = topFive.length !== 0 ? `Next ${topFive.length} song(s) in queue:` : "Queue is empty"
+
+	for (const song of topFive) {
+		replyMessage += `\n• ${song.name}`
+	}
+
+	return send(replyMessage)
+}
+
+export const clearQueue = () => queue.clear()
+export const loop = () => queue.toggleLooping()
+export const setVolume = volume => audioPlayer.setVolume(volume)
+
 const nextActionInQueue = async send => {
 	const nextAction = queue.finishCurrentAndGetNext()
 
@@ -71,7 +101,7 @@ const nextActionInQueue = async send => {
 	const filePath = await fileFetcher.performNextAction(nextAction)
 
 	if (nextAction.play && filePath) {
-		await audioPlayer.play(filePath)
+		audioPlayer.play(filePath)
 		await send(`🎶 Playing ${nextAction.play.name}`)
 	} else {
 		await send("⏹️ Queue over")

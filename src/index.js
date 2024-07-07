@@ -12,7 +12,7 @@ import puppeteer from "puppeteer-extra"
 
 import stealth from "puppeteer-extra-plugin-stealth"
 import dedent from "dedent"
-import { play } from "./music/index.js"
+import { pause, play, skip, queueList, current, resume, clearQueue, loop, setVolume } from "./music/index.js"
 puppeteer.use(stealth())
 
 const spinner = ora()
@@ -160,9 +160,9 @@ const send = async msg => {
 
 await send(
 	dedent`
-		Hello! I'm Meetusic Bot, a bot that helps you play music from online sources. type "@meetusicbot help" (without quotes) to see what I can do
-		Version: 1
-		Developed by @khrj
+		🤖 Meetusic Bot
+		📦 v0.1.0 — 🛠️ by @khrj
+		❓ /help
 	`
 )
 
@@ -170,19 +170,63 @@ spinner.succeed("Sent intro message")
 
 // Get messages from window
 await page.exposeFunction("message", async msg => {
-	if (msg.text.trim().startsWith("@meetusicbot") && msg.sender !== "You") {
-		const [_, command, ...args] = msg.text.trim().split(" ")
+	if (msg.text.trim().startsWith("/") && msg.sender !== "You") {
+		const [command, ...args] = msg.text.trim().slice(1).split(" ")
 
-		if (command === "help") {
-			await send(
-				dedent`
-					Here's what I can do:
-					@meetusicbot play <url>: play a url
-					@meetusicbot pause: pause
+		try {
+			if (command === "help")
+				await send(
+					dedent`
+					Commands:
+					/play <song name>
+					/next <song name>
+					/pause
+					/resume
+					/skip
+					/current
+					/queue
+					/clear
+					/loop
+					/volume <0-100>
 				`
-			)
-		} else if (command === "play") {
-			await play(args, send)
+				)
+			else if (command === "play") await play(args, send)
+			else if (command === "next") {
+				await play(args, send, true)
+			} else if (command === "pause") {
+				pause()
+				await send("⏸️ Paused")
+			} else if (command === "resume") {
+				resume()
+				await send("▶️ Resumed")
+			} else if (command === "skip") await skip(send)
+			else if (command === "current") await current(send)
+			else if (command === "queue") await queueList(send)
+			else if (command === "clear") {
+				clearQueue()
+				await send("🗑️ Cleared")
+			} else if (command === "loop") {
+				const looping = loop()
+				if (looping) await send("🔁 Looping")
+				else await send("➡ No longer looping")
+			} else if (command === "volume") {
+				try {
+					const vol = parseInt(args[0])
+					if (isNaN(vol)) throw "🛑 Volume must be a number between 0 and 100"
+
+					if (vol < 0 || vol > 100) throw "🛑 Volume must be a number between 0 and 100"
+					setVolume(args[0])
+					await send(`🔊 Volume set to ${args[0]}`)
+				} catch {
+					throw "🛑 Volume must be a number between 0 and 100"
+				}
+			}
+		} catch (e) {
+			if (typeof e === "string") {
+				await send(e)
+			} else {
+				console.error(e)
+			}
 		}
 
 		if (options.verbose) console.log(command, args)

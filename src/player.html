@@ -46,6 +46,10 @@
 				player.load()
 				player.play()
 			})
+
+			socket.on("pause", () => player.pause())
+			socket.on("resume", () => player.play())
+			socket.on("volume", volume => (player.volume = volume / 100))
 		</script>
 	</body>
 </html>

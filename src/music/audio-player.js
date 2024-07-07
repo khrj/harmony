@@ -29,9 +29,21 @@ export class AudioPlayer {
 		server.listen(3000, () => {})
 	}
 
-	async play(filePath) {
+	play(filePath) {
 		this.current = filePath
 		this.io.emit("play")
+	}
+
+	pause() {
+		this.io.emit("pause")
+	}
+
+	resume() {
+		this.io.emit("resume")
+	}
+
+	setVolume(vol) {
+		this.io.emit("volume", vol)
 	}
 
 	onNext(fn) {
