@@ -20,7 +20,6 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
 
 program
 	.option("-v, --verbose", "Output debug info")
-	.option("-l, --headfull", "Run chromium headfull instead of headless")
 	.requiredOption("-u, --url <Your meeting URL>", "URL of meeting to join")
 	.requiredOption("-e, --email <Your email address>", "Google account email")
 	.requiredOption("-p, --password <Your email address password>", "Google account password")
@@ -34,7 +33,7 @@ if (options.verbose) console.log(options)
 
 console.log(
 	chalk.yellow(
-		figlet.textSync("Meetusic Bot", {
+		figlet.textSync("Harmony", {
 			font: "Standard",
 			horizontalLayout: "fitted",
 		})
@@ -44,7 +43,7 @@ console.log(
 spinner.start("Opening browser")
 
 const browser = await puppeteer.launch({
-	headless: !options.headfull,
+	headless: false,
 	defaultViewport: null,
 	userDataDir: "./user_data",
 	args: ["--auto-select-tab-capture-source-by-title=about:blank", "--autoplay-policy=no-user-gesture-required"],
@@ -160,7 +159,7 @@ const send = async msg => {
 
 await send(
 	dedent`
-		🤖 Meetusic Bot
+		🤖 Harmony
 		📦 v0.1.0 — 🛠️ by @khrj
 		❓ /help
 	`

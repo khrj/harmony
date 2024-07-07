@@ -1,0 +1,2 @@
+server/assets/**/*.png filter=lfs diff=lfs merge=lfs -text
+server/assets/**/*.opus filter=lfs diff=lfs merge=lfs -text
