@@ -1,8 +1,37 @@
 <html>
+	<head>
+		<style>
+			html {
+				box-sizing: border-box;
+			}
+
+			*,
+			*:before,
+			*:after {
+				box-sizing: inherit;
+			}
+
+			body {
+				margin: 0;
+				padding: 0;
+				font-weight: normal;
+			}
+
+			#center {
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				height: 100vh;
+			}
+		</style>
+	</head>
 	<body>
-		<audio controls id="out">
-			<source src="audio" />
-		</audio>
+		<div id="center">
+			<audio controls id="out">
+				<source src="audio" />
+			</audio>
+		</div>
+
 		<script type="module">
 			// const media = await navigator.mediaDevices.getUserMedia({ audio: true })
 			// const devices = await navigator.mediaDevices.enumerateDevices()

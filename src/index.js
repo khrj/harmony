@@ -47,7 +47,7 @@ const browser = await puppeteer.launch({
 	headless: !options.headfull,
 	defaultViewport: null,
 	userDataDir: "./user_data",
-	args: ["--auto-select-tab-capture-source-by-title=about:blank"],
+	args: ["--auto-select-tab-capture-source-by-title=about:blank", "--autoplay-policy=no-user-gesture-required"],
 })
 
 browser.defaultBrowserContext().overridePermissions("https://meet.google.com", [])
@@ -55,7 +55,9 @@ browser.defaultBrowserContext().overridePermissions("https://meet.google.com", [
 const page = (await browser.pages())[0]
 
 const playerPage = await browser.newPage()
-await playerPage.setViewport({ width: 1600, height: 900 })
+await playerPage.setViewport({ width: 800, height: 450 })
+
+await page.bringToFront()
 
 await page.setExtraHTTPHeaders({ "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8" })
 await page.setUserAgent(
