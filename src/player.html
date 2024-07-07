@@ -4,13 +4,13 @@
 			<source src="audio" />
 		</audio>
 		<script type="module">
-			const media = await navigator.mediaDevices.getUserMedia({ audio: true })
-			const devices = await navigator.mediaDevices.enumerateDevices()
+			// const media = await navigator.mediaDevices.getUserMedia({ audio: true })
+			// const devices = await navigator.mediaDevices.enumerateDevices()
 
-			const [output] = devices.filter(device => device.kind === "audiooutput" && device.label === "meetusic-sink")
+			// const [output] = devices.filter(device => device.kind === "audiooutput" && device.label === "meetusic-sink")
 			const player = document.getElementById("out")
 
-			await player.setSinkId(output.deviceId)
+			// await player.setSinkId(output.deviceId)
 			player.play()
 		</script>
 	</body>

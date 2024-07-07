@@ -47,23 +47,28 @@ const browser = await puppeteer.launch({
 	headless: !options.headfull,
 	defaultViewport: null,
 	userDataDir: "./user_data",
+	protocol: "cdp",
 })
 
-browser.defaultBrowserContext().overridePermissions("https://meet.google.com", ["microphone"])
-browser.defaultBrowserContext().overridePermissions("http://localhost:3000", ["microphone"])
+browser.defaultBrowserContext().overridePermissions("https://meet.google.com", [])
+// browser.defaultBrowserContext().overridePermissions("http://localhost:3000", ["microphone"])
 
 const page = (await browser.pages())[0]
+
+const playerPage = await browser.newPage()
+await playerPage.setViewport({ width: 900, height: 1600 })
+
+const session = await page.createCDPSession()
+session.on("javascriptDialogOpening", async params => {
+	console.log(params)
+})
+
 await page.setExtraHTTPHeaders({ "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8" })
 await page.setUserAgent(
 	"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
 )
 
 spinner.succeed("Opened browser")
-
-spinner.start("Changing microphone settings...")
-await page.goto("chrome://settings/content/microphone", { waitUntil: "load" })
-await page.locator("pierce/#mediaPicker").fill("meetusic-sink")
-spinner.succeed("Selected meetusic-sink as microphone")
 
 spinner.start("Loading page")
 await page.goto("https://meet.google.com/", { waitUntil: "load" })
@@ -123,9 +128,22 @@ try {
 	console.log("No dialog to close")
 }
 
-await page.locator('[aria-label="Chat with everyone"]').wait({ timeout: 0 })
+await page.waitForSelector('[aria-label="Chat with everyone"]', { timeout: 0 })
 
 spinner.succeed("Joined meeting")
+
+await sleep(2000)
+spinner.start("Sharing player tab")
+
+await page.locator("button[aria-label='Present now']").click()
+
+await page.keyboard.press("Tab")
+await page.keyboard.press("Tab")
+await page.keyboard.press("ArrowDown")
+await page.keyboard.press("Enter")
+
+await sleep(100000)
+
 spinner.start("Sending intro message")
 
 await sleep(2000)
@@ -175,8 +193,7 @@ await page.exposeFunction("message", async msg => {
 			)
 		} else if (command === "play") {
 			await play(args, send)
-			const playerPage = await browser.newPage()
-			playerPage.goto("http://localhost:3000")
+			await playerPage.goto("http://localhost:3000")
 		}
 
 		if (options.verbose) console.log(command, args)
