@@ -47,21 +47,15 @@ const browser = await puppeteer.launch({
 	headless: !options.headfull,
 	defaultViewport: null,
 	userDataDir: "./user_data",
-	protocol: "cdp",
+	args: ["--auto-select-tab-capture-source-by-title=about:blank"],
 })
 
 browser.defaultBrowserContext().overridePermissions("https://meet.google.com", [])
-// browser.defaultBrowserContext().overridePermissions("http://localhost:3000", ["microphone"])
 
 const page = (await browser.pages())[0]
 
 const playerPage = await browser.newPage()
-await playerPage.setViewport({ width: 900, height: 1600 })
-
-const session = await page.createCDPSession()
-session.on("javascriptDialogOpening", async params => {
-	console.log(params)
-})
+await playerPage.setViewport({ width: 1600, height: 900 })
 
 await page.setExtraHTTPHeaders({ "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8" })
 await page.setUserAgent(
@@ -129,20 +123,12 @@ try {
 }
 
 await page.waitForSelector('[aria-label="Chat with everyone"]', { timeout: 0 })
-
 spinner.succeed("Joined meeting")
 
-await sleep(2000)
 spinner.start("Sharing player tab")
-
+await sleep(2000)
 await page.locator("button[aria-label='Present now']").click()
-
-await page.keyboard.press("Tab")
-await page.keyboard.press("Tab")
-await page.keyboard.press("ArrowDown")
-await page.keyboard.press("Enter")
-
-await sleep(100000)
+spinner.succeed("Shared player tab")
 
 spinner.start("Sending intro message")
 
