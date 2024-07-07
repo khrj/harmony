@@ -44,21 +44,23 @@ export const play = async (args, send) => {
 	queue.addSong(song, false)
 
 	if (queue.getCurrent()) {
-		return send(`✅ Added ${queuedSong.name} to the queue`)
+		await send(`✅ Added ${song.name} to the queue`)
+		return
 	}
 
-	// TODO: A way for the player to notify when it is done playing so that the
-	// next song can be played
-
-	try {
-		await nextActionInQueue(send)
-	} catch (e) {
-		if (typeof e === "string") {
-			throw `🛑 Error: ${e}`
-		} else {
-			throw e
+	audioPlayer.onNext(async () => {
+		try {
+			await nextActionInQueue(send)
+		} catch (e) {
+			if (typeof e === "string") {
+				throw `🛑 Error: ${e}`
+			} else {
+				throw e
+			}
 		}
-	}
+	})
+
+	await audioPlayer.next()
 }
 
 const nextActionInQueue = async send => {
@@ -69,7 +71,7 @@ const nextActionInQueue = async send => {
 	const filePath = await fileFetcher.performNextAction(nextAction)
 
 	if (nextAction.play && filePath) {
-		await audioPlayer.setFile(filePath)
+		await audioPlayer.play(filePath)
 		await send(`🎶 Playing ${nextAction.play.name}`)
 	} else {
 		await send("⏹️ Queue over")

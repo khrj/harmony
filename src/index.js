@@ -55,7 +55,7 @@ browser.defaultBrowserContext().overridePermissions("https://meet.google.com", [
 const page = (await browser.pages())[0]
 
 const playerPage = await browser.newPage()
-await playerPage.setViewport({ width: 800, height: 450 })
+await playerPage.setViewport({ width: 400, height: 225 })
 
 await page.bringToFront()
 
@@ -130,6 +130,8 @@ spinner.succeed("Joined meeting")
 spinner.start("Sharing player tab")
 await sleep(2000)
 await page.locator("button[aria-label='Present now']").click()
+await sleep(1000)
+await playerPage.goto("http://localhost:3000")
 spinner.succeed("Shared player tab")
 
 spinner.start("Sending intro message")
@@ -181,7 +183,6 @@ await page.exposeFunction("message", async msg => {
 			)
 		} else if (command === "play") {
 			await play(args, send)
-			await playerPage.goto("http://localhost:3000")
 		}
 
 		if (options.verbose) console.log(command, args)

@@ -28,19 +28,24 @@
 	<body>
 		<div id="center">
 			<audio controls id="out">
-				<source src="audio" />
+				<source id="src" src="audio" />
 			</audio>
 		</div>
 
+		<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 		<script type="module">
-			// const media = await navigator.mediaDevices.getUserMedia({ audio: true })
-			// const devices = await navigator.mediaDevices.enumerateDevices()
+			const socket = io()
 
-			// const [output] = devices.filter(device => device.kind === "audiooutput" && device.label === "meetusic-sink")
 			const player = document.getElementById("out")
+			player.addEventListener("ended", () => socket.emit("ended"))
 
-			// await player.setSinkId(output.deviceId)
-			player.play()
+			const source = document.getElementById("src")
+
+			socket.on("play", () => {
+				source.src = `audio?time=${Date.now()}`
+				player.load()
+				player.play()
+			})
 		</script>
 	</body>
 </html>
