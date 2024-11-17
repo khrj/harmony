@@ -82,6 +82,8 @@ if (domain === "workspace.google.com" || domain === "accounts.google.com") {
 	await page.locator('#password input[type="password"]').fill(options.password)
 	await Promise.all([page.waitForNavigation({ waitUntil: "networkidle0" }), page.keyboard.press("Enter")])
 
+	await sleep(2000)
+
 	if ((await page.$eval("title", e => e.innerHTML)) === "Google Account") {
 		spinner.succeed("Signed in successfully")
 	} else {
